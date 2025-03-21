@@ -1,0 +1,31 @@
+services:
+  grafana:
+    image: my-grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"  # Grafana UI
+      - "4317:4317"  # OTLP endpoint (gRPC)
+      - "9090:9090"  # Prometheus, if applicable
+      - "3100:3100"  # Loki, if applicable
+    networks:
+      - monitoring
+
+  test-java:
+    image: test-java
+    container_name: test-java
+    depends_on:
+      - grafana
+    ports:
+      - "8080:8080"  # Application port (if needed)
+    environment:
+      # Instruct the OTEL Java agent to export telemetry data (spans, metrics, logs) to the OTLP endpoint
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://grafana:4317
+      - OTEL_SERVICE_NAME=test-java
+      - OTEL_RESOURCE_ATTRIBUTES=service=test-java,env=dev
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
